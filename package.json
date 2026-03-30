@@ -1,0 +1,14 @@
+{
+  "name": "atbp-platform",
+  "version": "1.0.0",
+  "description": "Automated Testing & Bug Platform",
+  "scripts": {
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "dev:automation": "cd automation-service && .\\venv\\Scripts\\python app.py",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run dev:automation\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

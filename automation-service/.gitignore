@@ -1,0 +1,31 @@
+# Virtual Environment
+venv/
+env/
+*.pyc
+__pycache__/
+
+# Environment Variables
+.env
+
+# Screenshots
+screenshots/*.png
+screenshots/*.jpg
+!screenshots/.gitkeep
+
+# Logs
+logs/*.log
+!logs/.gitkeep
+
+# Chrome Driver
+drivers/chromedriver.exe
+drivers/chromedriver
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
