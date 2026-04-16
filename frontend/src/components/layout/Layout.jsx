@@ -11,7 +11,7 @@ export const Layout = () => {
         <main style={{ 
           flex: 1, 
           padding: '2rem',
-          backgroundColor: 'var(--gray-50)',
+          backgroundColor: '#F1F4F9',
           minHeight: 'calc(100vh - 65px)'
         }}>
           <Outlet />

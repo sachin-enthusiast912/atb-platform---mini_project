@@ -11,12 +11,24 @@ class GenericTest(BaseTest):
         super().__init__(driver)
         self.steps = steps
         
-    def _get_by_type(self, selector):
-        """Helper to determine selector type (CSS or XPATH)"""
-        # Simple heuristic: if it starts with // or (// it's XPath
+    def _parse_selector(self, selector):
+        """Helper to determine selector type and convert jQuery pseudo-selectors like :contains() to XPath"""
+        if ':contains(' in selector and not selector.startswith('//'):
+            tag = selector.split(':contains(')[0]
+            if not tag:
+                tag = '*'
+            text_part = selector.split(':contains(')[1].strip()
+            if text_part.endswith(')'):
+                text_part = text_part[:-1]
+            if text_part.startswith('"') and text_part.endswith('"'):
+                text_part = text_part[1:-1]
+            elif text_part.startswith("'") and text_part.endswith("'"):
+                text_part = text_part[1:-1]
+            return By.XPATH, f"//{tag}[contains(text(), '{text_part}')]"
+            
         if selector.startswith('//') or selector.startswith('('):
-            return By.XPATH
-        return By.CSS_SELECTOR
+            return By.XPATH, selector
+        return By.CSS_SELECTOR, selector
 
     def _execute_action(self, action_str):
         if not action_str:
@@ -50,7 +62,8 @@ class GenericTest(BaseTest):
             if len(parts) < 2:
                 raise Exception("CLICK missing selector argument")
             selector = ' '.join(parts[1:])
-            success = self.click_element(self._get_by_type(selector), selector)
+            by_type, parsed_selector = self._parse_selector(selector)
+            success = self.click_element(by_type, parsed_selector)
             if not success:
                 raise Exception(f"Failed to click element: {selector}")
             return True
@@ -60,7 +73,8 @@ class GenericTest(BaseTest):
                 raise Exception("TYPE missing selector or text argument. Syntax: TYPE <selector> <text>")
             selector = parts[1]
             text = ' '.join(parts[2:])
-            success = self.input_text(self._get_by_type(selector), selector, text)
+            by_type, parsed_selector = self._parse_selector(selector)
+            success = self.input_text(by_type, parsed_selector, text)
             if not success:
                 raise Exception(f"Failed to type into element: {selector}")
             return True
@@ -101,7 +115,8 @@ class GenericTest(BaseTest):
             if len(parts) < 2:
                 raise Exception("ASSERT_VISIBLE missing selector argument")
             selector = ' '.join(parts[1:])
-            if not self.is_element_visible(self._get_by_type(selector), selector):
+            by_type, parsed_selector = self._parse_selector(selector)
+            if not self.is_element_visible(by_type, parsed_selector):
                 raise Exception(f"Element not visible: {selector}")
             return True
             
@@ -110,9 +125,25 @@ class GenericTest(BaseTest):
                 raise Exception("ASSERT_TEXT missing selector or expected text")
             selector = parts[1]
             expected_text = ' '.join(parts[2:])
-            actual = self.get_text(self._get_by_type(selector), selector)
+            by_type, parsed_selector = self._parse_selector(selector)
+            actual = self.get_text(by_type, parsed_selector)
             if actual is None or expected_text not in actual:
                 raise Exception(f"Expected text '{expected_text}' not found in element '{selector}'. Actual: '{actual}'")
+            return True
+            
+        elif command == 'ASSERT_NO_BROKEN_IMAGES':
+            broken_images = self.driver.execute_script("""
+                var broken = [];
+                for (var i = 0; i < document.images.length; i++) {
+                    var img = document.images[i];
+                    if (!img.complete || typeof img.naturalWidth == 'undefined' || img.naturalWidth === 0) {
+                        broken.push(img.src || 'Unknown Image Location');
+                    }
+                }
+                return broken;
+            """)
+            if broken_images:
+                raise Exception(f"Found {len(broken_images)} broken image(s). First 3: {', '.join(broken_images[:3])}")
             return True
             
         else:
